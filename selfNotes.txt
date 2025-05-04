@@ -1,0 +1,2 @@
+- Now we have added the context for region adn the cart,
+so the shole app knows about cart and region regardless of where it is used.
