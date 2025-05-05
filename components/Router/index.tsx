@@ -5,6 +5,8 @@ import { useCart } from "@/providers/cart"
 import { useEffect, useMemo } from "react"
 import { Product } from "../Product"
 import { Address } from "../Address"
+import { Shipping } from "../Shipping"
+import { Payment } from "../Payment"
 
 type ActiveTab = "product" | "address" | "shipping" | "payment"
 
@@ -51,6 +53,9 @@ export const Router = ({
         <>
             <Product handle={handle} isActive={activeTab === "product"} />
             <Address handle={handle} isActive={activeTab === "address"} />
+            <Shipping handle={handle} isActive={activeTab === "shipping"} />
+            <Payment handle={handle} isActive={activeTab === "payment"} />
+
         </>
     )
 }

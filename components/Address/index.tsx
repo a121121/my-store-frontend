@@ -58,6 +58,35 @@ export const Address = ({
         postalCode, city, country, loading,
     ])
 
+    // Check if address is complete with all required fields
+    const isAddressComplete = useMemo(() => {
+        // First check if cart exists
+        if (!cart) return false;
+
+        // Then check if shipping_address exists
+        if (!cart.shipping_address) return false;
+
+        // Finally check all required fields in shipping address
+        return Boolean(
+            cart.shipping_address.first_name &&
+            cart.shipping_address.last_name &&
+            cart.email &&
+            cart.shipping_address.phone &&
+            cart.shipping_address.address_1 &&
+            cart.shipping_address.postal_code &&
+            cart.shipping_address.city &&
+            cart.shipping_address.country_code &&
+            // Check for billing address and its required fields
+            cart.billing_address &&
+            cart.billing_address.first_name &&
+            cart.billing_address.last_name &&
+            cart.billing_address.address_1 &&
+            cart.billing_address.postal_code &&
+            cart.billing_address.city &&
+            cart.billing_address.country_code
+        );
+    }, [cart])
+
     const handleSubmit = () => {
         if (isButtonDisabled) {
             return
@@ -98,7 +127,7 @@ export const Address = ({
         <CustomCard
             title="Delivery Address"
             isActive={isActive}
-            isDone={!!cart?.shipping_address}
+            isDone={false} // Force isDone to be false until we debug the issue
             path={`/${handle}?step=address`}
         >
             <div className="flex flex-col gap-8">
