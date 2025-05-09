@@ -136,3 +136,12 @@
     font-family: var(--font-outfit);
   }
 }
+
+@layer components {
+  .glossy-effect {
+    background-color: color-mix(in oklch, var(--background), transparent 80%);
+    backdrop-filter: blur(12px);
+    border: 1px solid color-mix(in oklch, var(--border), transparent 70%);
+    box-shadow: var(--shadow-lg);
+  }
+}

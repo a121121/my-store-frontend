@@ -125,7 +125,11 @@ export const Product = ({ handle, isActive }: ProductProps) => {
             isDone={cart?.items !== undefined && cart?.items?.length > 0}
             path={`/${handle}`}
         >
-            {loading && <DotLoader size={24} color="#9333ea" />}
+            {loading &&
+                <div className="flex flex-col items-center justify-center">
+                    <DotLoader size={24} color="#9333ea" />
+                </div>
+            }
             {!loading && !product && <div>Product not found</div>}
             {!loading && product && (
                 <div className="flex flex-col gap-4">

@@ -5,6 +5,7 @@ import { SecondCol } from "@/components/SecondCol";
 import { CartProvider } from "@/providers/cart";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import Navbar from "@/components/Navbar";
 
 export const quicksand = Quicksand({
   subsets: ["latin"],
@@ -35,19 +36,22 @@ export default function RootLayout({
       suppressHydrationWarning>
       <body className="bg-ui-bg-subtle w-full h-full"
         suppressHydrationWarning>
+        <Navbar />
         <div className={cn(
-          "flex justify-center items-center min-h-screen w-full"
+          " min-h-screen w-full"
         )}>
           <RegionProvider>
             <CartProvider>
-              <div className={cn(
+              <div >
+                {/* <div className={cn(
                 "flex gap-2 lg:my-16 my-4",
                 "lg:w-[758px] lg:mx-auto w-full mx-4"
-              )}>
-                <div className="flex flex-col gap-2 lg:w-1/2 w-full">
-                  {children}
-                </div>
-                <SecondCol />
+              )}> */}
+                {/* <div className="flex flex-col gap-2 lg:w-1/2 w-full"> */}
+                {/* <div className=""> */}
+                {children}
+                {/* </div> */}
+                {/* <SecondCol /> */}
               </div>
             </CartProvider>
           </RegionProvider>
