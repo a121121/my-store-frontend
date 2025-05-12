@@ -1,2 +1,3 @@
 - Now we have added the context for region adn the cart,
 so the shole app knows about cart and region regardless of where it is used.
+right noe we just defined the base product, however, medusa types already exist in the own frontend

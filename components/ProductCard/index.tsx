@@ -17,6 +17,9 @@ export interface Product {
     rating: number;
     reviewCount: number;
     inStock: boolean;
+    currencyCode?: string;
+    formattedPrice?: string;
+    formattedDiscountedPrice?: string;
 }
 
 interface ProductCardProps {
@@ -35,173 +38,185 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
     const handleAddToCart = () => {
         setIsLoading(true);
-        // Simulate API call
         setTimeout(() => {
             if (onAddToCart) onAddToCart(product);
             setIsLoading(false);
         }, 500);
     };
 
-    const discount = product.discountedPrice
+    const discount = (product.discountedPrice && product.price > 0)
         ? Math.round(((product.price - product.discountedPrice) / product.price) * 100)
         : 0;
 
     const renderStars = () => {
-        const stars = [];
-        const fullStars = Math.floor(product.rating);
-        const hasHalfStar = product.rating % 1 >= 0.5;
-
-        for (let i = 0; i < 5; i++) {
-            if (i < fullStars) {
-                stars.push(<Star key={i} size={16} className="fill-yellow-400 text-yellow-400" />);
-            } else if (i === fullStars && hasHalfStar) {
-                stars.push(
-                    <div key={i} className="relative">
-                        <Star size={16} className="text-gray-300" />
-                        <div className="absolute top-0 left-0 overflow-hidden w-1/2">
-                            <Star size={16} className="fill-yellow-400 text-yellow-400" />
-                        </div>
-                    </div>
-                );
-            } else {
-                stars.push(<Star key={i} size={16} className="text-gray-300" />);
-            }
-        }
-        return stars;
+        return Array(5).fill(0).map((_, i) => {
+            const starClass = i < Math.floor(product.rating)
+                ? "fill-yellow-400 text-yellow-400"
+                : "text-gray-300";
+            return <Star key={i} size={14} className={starClass} />;
+        });
     };
+
+    const hasPricing = product.price > 0;
+    const showDiscounted = product.discountedPrice && product.discountedPrice < product.price;
 
     return (
         <Card
-            className="overflow-hidden transition-all duration-300 h-full flex flex-col hover:shadow-lg"
+            className="h-full overflow-hidden transition-shadow duration-300 hover:shadow-md flex flex-col relative"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
         >
-            {/* Product Image Container */}
-            <div className="relative pt-[100%] w-full overflow-hidden bg-gray-100">
-                {/* Sale Badge */}
-                {product.discountedPrice && (
-                    <Badge className="absolute top-2 left-2 z-10 bg-red-500 hover:bg-red-600">
-                        -{discount}%
-                    </Badge>
-                )}
+            {/* Discount Banner */}
+            {discount > 0 && (
+                <div className="absolute top-0 left-0 right-0 bg-red-600 text-white text-center text-xs font-bold py-1 z-10">
+                    {discount}% OFF
+                </div>
+            )}
 
-                {/* Category Badge */}
-                <Badge className="absolute top-2 right-2 z-10 bg-blue-500 hover:bg-blue-600">
-                    {product.category}
-                </Badge>
-
+            {/* Image */}
+            <div className="relative aspect-square overflow-hidden" style={{ marginTop: discount > 0 ? '24px' : '0' }}>
                 {/* Product Image */}
                 <img
                     src={product.imageUrl || "/api/placeholder/400/400"}
                     alt={product.title}
-                    className={`absolute inset-0 w-full h-full object-cover transition-transform duration-500 ${isHovering ? 'scale-110' : 'scale-100'}`}
+                    className={`w-full h-full object-cover transition-transform duration-300 ${isHovering ? 'scale-105' : 'scale-100'}`}
                 />
 
-                {/* Quick Actions Overlay */}
-                <div className={`absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center gap-2 transition-opacity duration-300 ${isHovering ? 'opacity-100' : 'opacity-0'}`}>
-                    <Dialog>
-                        <DialogTrigger asChild>
-                            <Button size="sm" variant="secondary" className="rounded-full">
-                                <Eye size={18} />
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="max-w-2xl">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="aspect-square overflow-hidden rounded-md">
-                                    <img
-                                        src={product.imageUrl || "/api/placeholder/400/400"}
-                                        alt={product.title}
-                                        className="w-full h-full object-cover"
-                                    />
+                {/* Quick View Button */}
+                <Dialog>
+                    <DialogTrigger asChild>
+                        <Button
+                            size="sm"
+                            variant="secondary"
+                            className={`absolute bottom-2 right-2 rounded-full transition-opacity ${isHovering ? 'opacity-100' : 'opacity-0'}`}
+                        >
+                            <Eye size={16} />
+                        </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl p-0 overflow-hidden">
+                        <div className="grid grid-cols-1 md:grid-cols-2">
+                            <div className="aspect-square bg-gray-100">
+                                <img
+                                    src={product.imageUrl || "/api/placeholder/400/400"}
+                                    alt={product.title}
+                                    className="w-full h-full object-cover"
+                                />
+                            </div>
+                            <div className="p-6 flex flex-col gap-4">
+                                <div>
+                                    <h2 className="text-xl font-bold">{product.title}</h2>
                                 </div>
-                                <div className="flex flex-col gap-4">
-                                    <div>
-                                        <h2 className="text-2xl font-bold">{product.title}</h2>
-                                        <p className="text-gray-500">{product.category}</p>
-                                    </div>
 
-                                    <div className="flex items-center gap-2">
-                                        <div className="flex">{renderStars()}</div>
-                                        <span className="text-sm text-gray-500">({product.reviewCount} reviews)</span>
-                                    </div>
+                                <div className="flex items-center gap-2">
+                                    <div className="flex">{renderStars()}</div>
+                                    <span className="text-xs text-gray-500">
+                                        ({product.reviewCount} reviews)
+                                    </span>
+                                </div>
 
+                                {hasPricing ? (
                                     <div className="flex items-center gap-2">
-                                        {product.discountedPrice ? (
+                                        {showDiscounted ? (
                                             <>
-                                                <span className="text-xl font-bold">${product.discountedPrice.toFixed(2)}</span>
-                                                <span className="text-gray-500 line-through">${product.price.toFixed(2)}</span>
+                                                <span className="text-lg font-bold text-red-600">
+                                                    {product.formattedDiscountedPrice ||
+                                                        `${product.currencyCode} ${product.discountedPrice?.toFixed(2)}`}
+                                                </span>
+                                                <span className="text-gray-500 text-sm line-through">
+                                                    {product.formattedPrice ||
+                                                        `${product.currencyCode} ${product.price.toFixed(2)}`}
+                                                </span>
+                                                <Badge className="bg-red-600 hover:bg-red-700">
+                                                    {discount}% OFF
+                                                </Badge>
                                             </>
                                         ) : (
-                                            <span className="text-xl font-bold">${product.price.toFixed(2)}</span>
+                                            <span className="text-lg font-bold">
+                                                {product.formattedPrice ||
+                                                    `${product.currencyCode} ${product.price.toFixed(2)}`}
+                                            </span>
                                         )}
                                     </div>
+                                ) : (
+                                    <span className="text-gray-600">Contact for price</span>
+                                )}
 
-                                    <p className="text-gray-700">{product.description}</p>
+                                <p className="text-sm text-gray-700 line-clamp-4">
+                                    {product.description}
+                                </p>
 
-                                    <div className="mt-auto flex gap-2">
-                                        <Button className="flex-1" onClick={handleAddToCart} disabled={!product.inStock || isLoading}>
-                                            {isLoading ? "Adding..." : "Add to Cart"}
-                                        </Button>
-                                        <Button variant="outline" onClick={() => onAddToWishlist && onAddToWishlist(product)}>
-                                            <Heart size={20} />
-                                        </Button>
-                                    </div>
+                                <div className="mt-auto flex gap-2">
+                                    <Button
+                                        className="flex-1"
+                                        onClick={handleAddToCart}
+                                        disabled={!product.inStock || isLoading}
+                                    >
+                                        {isLoading ? "Adding..." : "Add to Cart"}
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => onAddToWishlist?.(product)}
+                                    >
+                                        <Heart size={18} />
+                                    </Button>
                                 </div>
                             </div>
-                        </DialogContent>
-                    </Dialog>
-                </div>
+                        </div>
+                    </DialogContent>
+                </Dialog>
             </div>
 
             {/* Product Info */}
-            <div className="p-4 flex flex-col gap-2 flex-grow">
-                <h3 className="font-medium text-lg line-clamp-2 h-14">{product.title}</h3>
+            <div className="p-3 flex flex-col gap-1 flex-grow">
+                <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
 
                 <div className="flex items-center gap-1">
                     <div className="flex">{renderStars()}</div>
                     <span className="text-xs text-gray-500">({product.reviewCount})</span>
                 </div>
 
-                <div className="flex items-center gap-2 mt-1">
-                    {product.discountedPrice ? (
-                        <>
-                            <span className="font-bold">${product.discountedPrice.toFixed(2)}</span>
-                            <span className="text-gray-500 text-sm line-through">${product.price.toFixed(2)}</span>
-                        </>
-                    ) : (
-                        <span className="font-bold">${product.price.toFixed(2)}</span>
-                    )}
-                </div>
+                {hasPricing ? (
+                    <div className="flex items-center gap-1">
+                        {showDiscounted ? (
+                            <>
+                                <span className="font-bold text-sm text-red-600">
+                                    {product.formattedDiscountedPrice ||
+                                        `${product.currencyCode} ${product.discountedPrice?.toFixed(2)}`}
+                                </span>
+                                <span className="text-gray-500 text-xs line-through">
+                                    {product.formattedPrice ||
+                                        `${product.currencyCode} ${product.price.toFixed(2)}`}
+                                </span>
+                            </>
+                        ) : (
+                            <span className="font-bold text-sm">
+                                {product.formattedPrice ||
+                                    `${product.currencyCode} ${product.price.toFixed(2)}`}
+                            </span>
+                        )}
+                    </div>
+                ) : (
+                    <span className="text-xs text-gray-600">Contact for price</span>
+                )}
 
-                {/* Stock Status */}
                 <div className="mt-1">
-                    {product.inStock ? (
-                        <span className="text-xs text-green-600 font-medium">In Stock</span>
-                    ) : (
-                        <span className="text-xs text-red-600 font-medium">Out of Stock</span>
-                    )}
+                    <span className={`text-xs font-medium ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
+                        {product.inStock ? 'In Stock' : 'Out of Stock'}
+                    </span>
                 </div>
             </div>
 
-            {/* Product Actions */}
-            <div className="p-4 pt-0 mt-auto">
-                <div className="flex gap-2">
-                    <Button
-                        className="flex-1 gap-2"
-                        onClick={handleAddToCart}
-                        disabled={!product.inStock || isLoading}
-                    >
-                        <ShoppingCart size={16} />
-                        {isLoading ? "Adding..." : "Add to Cart"}
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => onAddToWishlist && onAddToWishlist(product)}
-                    >
-                        <Heart size={16} />
-                    </Button>
-                </div>
+            {/* Add to Cart Button */}
+            <div className="p-3 pt-0">
+                <Button
+                    size="sm"
+                    className="w-full gap-2"
+                    onClick={handleAddToCart}
+                    disabled={!product.inStock || isLoading}
+                >
+                    <ShoppingCart size={14} />
+                    {isLoading ? "Adding..." : "Add to Cart"}
+                </Button>
             </div>
         </Card>
     );

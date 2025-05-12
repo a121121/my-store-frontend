@@ -36,12 +36,14 @@ export default function RootLayout({
       suppressHydrationWarning>
       <body className="bg-ui-bg-subtle w-full h-full"
         suppressHydrationWarning>
-        <Navbar />
         <div className={cn(
           " min-h-screen w-full"
         )}>
+
+
           <RegionProvider>
             <CartProvider>
+              <Navbar />
               <div >
                 {/* <div className={cn(
                 "flex gap-2 lg:my-16 my-4",

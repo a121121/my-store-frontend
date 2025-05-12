@@ -5,8 +5,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Menu, ShoppingBag, Search, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useRegion } from "@/providers/region";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 export default function Navbar() {
+    const { region, regions, setRegion } = useRegion()
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -64,10 +67,30 @@ export default function Navbar() {
                     </nav>
 
                     {/* Icons - aligned right */}
-                    <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="icon">
+                    <div className="hidden md:flex items-center space-x-2">
+                        {/* <Button variant="ghost" size="icon">
                             <Search className="h-5 w-5" />
-                        </Button>
+                        </Button> */}
+                        <Select
+                            value={region?.id}
+                            onValueChange={(value) => {
+                                const selectedRegion = regions.find(
+                                    (r) => r.id === value
+                                )
+                                setRegion(selectedRegion)
+                            }}
+                        >
+                            <SelectTrigger className="w-auto h-8 text-sm">
+                                <SelectValue placeholder="Select region" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {regions.map((r) => (
+                                    <SelectItem key={r.id} value={r.id}>
+                                        {r.name}
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
                         <Button variant="ghost" size="icon">
                             <User className="h-5 w-5" />
                         </Button>
@@ -114,6 +137,26 @@ export default function Navbar() {
                         </nav>
                         <div className="mt-auto pt-8 border-t border-border">
                             <div className="flex justify-center space-x-4">
+                                <Select
+                                    value={region?.id}
+                                    onValueChange={(value) => {
+                                        const selectedRegion = regions.find(
+                                            (r) => r.id === value
+                                        )
+                                        setRegion(selectedRegion)
+                                    }}
+                                >
+                                    <SelectTrigger className="w-auto h-8 text-sm">
+                                        <SelectValue placeholder="Select region" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {regions.map((r) => (
+                                            <SelectItem key={r.id} value={r.id}>
+                                                {r.name}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <Button variant="outline" className="flex items-center gap-2">
                                     <User className="h-4 w-4" />
                                     <span>Account</span>

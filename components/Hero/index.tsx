@@ -3,7 +3,6 @@
 
 import { useState, useEffect } from "react";
 import { ArrowRight } from "lucide-react";
-// import ComingSoonButton from "./ComingSoonButton";
 import { Button } from "../ui/button";
 
 const backgroundImages = [
@@ -62,10 +61,6 @@ export default function HeroSection() {
                             // label="Shop Now"
                             className="snuggle-button text-base px-8 py-6 cursor-pointer">
                             <ArrowRight className="ml-2 h-4 w-4" /> Shop Now
-                        </Button>
-                        <Button
-                            // label="Explore Collection"
-                            variant="outline" className="text-base px-8 py-6 border-2 cursor-pointer"> Explore Collection
                         </Button>
                     </div>
                 </div>
