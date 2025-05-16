@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
         port: '9000',
         pathname: '/static/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'medusa-public-images.s3.eu-west-1.amazonaws.com',
+        pathname: '/**',
+      },
     ],
   },
 };

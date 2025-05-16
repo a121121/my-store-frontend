@@ -71,34 +71,52 @@ export const CartProvider = ({ children }: CartProviderProps) => {
             })
     }, [region])
 
+    // And modify the refreshCart function to only create a new cart if one doesn't exist:
     const refreshCart = async () => {
         if (!region) {
-            return
+            return;
         }
 
+        const cartId = localStorage.getItem("cart_id");
+        if (cartId) {
+            try {
+                const { cart: dataCart } = await sdk.store.cart.retrieve(cartId, {
+                    fields: "+items.variant.*,+items.variant.options.*,+items.variant.options.option.*"
+                });
+                setCart(dataCart);
+                return dataCart;
+            } catch (error) {
+                // If retrieval fails, continue to create new cart
+                console.error("Failed to retrieve cart:", error);
+            }
+        }
+
+        // Create new cart only if one doesn't exist
         const { cart: dataCart } = await sdk.store.cart.create({
             region_id: region.id,
-        })
+        });
 
-        localStorage.setItem("cart_id", dataCart.id)
-        setCart(dataCart)
+        localStorage.setItem("cart_id", dataCart.id);
+        setCart(dataCart);
 
-        return dataCart
+        return dataCart;
     }
 
     const addToCart = async (variantId: string, quantity: number) => {
-        const newCart = await refreshCart()
-        if (!newCart) {
-            throw new Error("Could not create cart")
+        if (!cart) {
+            const newCart = await refreshCart();
+            if (!newCart) {
+                throw new Error("Could not create cart");
+            }
         }
 
-        const { cart: dataCart } = await sdk.store.cart.createLineItem(newCart.id, {
+        const { cart: dataCart } = await sdk.store.cart.createLineItem(cart!.id, {
             variant_id: variantId,
             quantity,
-        })
-        setCart(dataCart)
+        });
+        setCart(dataCart);
 
-        return dataCart
+        return dataCart;
     }
 
     const updateCart = async ({

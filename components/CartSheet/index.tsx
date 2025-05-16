@@ -28,7 +28,7 @@ export default function CartSheet() {
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
     const subtotal = cart?.items?.reduce(
-        (total, item) => total + (item.unit_price * item.quantity) / 100,
+        (total, item) => total + (item.unit_price * item.quantity),
         0
     ) || 0;
 
@@ -139,8 +139,8 @@ export default function CartSheet() {
                                     {cart.items?.map((item) => {
                                         const title = item.title || item.variant?.title || "Product";
                                         const thumbnail = item.thumbnail || "/placeholder.jpg";
-                                        const price = (item.unit_price * item.quantity) / 100;
-                                        const unitPrice = item.unit_price / 100;
+                                        const price = (item.unit_price * item.quantity);
+                                        const unitPrice = item.unit_price;
 
                                         return (
                                             <div key={item.id} className="grid grid-cols-4 gap-3 items-center py-2">
@@ -224,7 +224,7 @@ export default function CartSheet() {
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Shipping</span>
                                             <span className="font-medium">
-                                                {formatPrice(cart.shipping_total / 100)}
+                                                {formatPrice(cart.shipping_total)}
                                             </span>
                                         </div>
                                     )}
@@ -233,7 +233,7 @@ export default function CartSheet() {
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Tax</span>
                                             <span className="font-medium">
-                                                {formatPrice(cart.tax_total / 100)}
+                                                {formatPrice(cart.tax_total)}
                                             </span>
                                         </div>
                                     )}
@@ -242,7 +242,7 @@ export default function CartSheet() {
 
                                     <div className="flex justify-between font-semibold">
                                         <span>Total</span>
-                                        <span>{formatPrice((cart.total || 0) / 100)}</span>
+                                        <span>{formatPrice((cart.total || 0))}</span>
                                     </div>
                                 </div>
                             </div>
