@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { Quicksand, Nunito } from "next/font/google";
 import { RegionProvider } from "@/providers/region";
-import { SecondCol } from "@/components/SecondCol";
 import { CartProvider } from "@/providers/cart";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import { Toaster } from "sonner";
 
 export const quicksand = Quicksand({
   subsets: ["latin"],
@@ -55,6 +56,8 @@ export default function RootLayout({
                 {/* </div> */}
                 {/* <SecondCol /> */}
               </div>
+              <Footer />
+              <Toaster />
             </CartProvider>
           </RegionProvider>
 

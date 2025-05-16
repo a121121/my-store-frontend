@@ -4,28 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Heart, ShoppingCart, Star, Eye } from 'lucide-react';
-
-// Types
-export interface Product {
-    id: string;
-    title: string;
-    description: string;
-    price: number;
-    discountedPrice?: number;
-    imageUrl: string;
-    category: string;
-    rating: number;
-    reviewCount: number;
-    inStock: boolean;
-    currencyCode?: string;
-    formattedPrice?: string;
-    formattedDiscountedPrice?: string;
-}
+import { HttpTypes } from "@medusajs/types";
+import { getProductPrice } from "@/lib/get-product-price";
 
 interface ProductCardProps {
-    product: Product;
-    onAddToCart?: (product: Product) => void;
-    onAddToWishlist?: (product: Product) => void;
+    product: HttpTypes.StoreProduct;
+    onAddToCart?: (product: HttpTypes.StoreProduct) => void;
+    onAddToWishlist?: (product: HttpTypes.StoreProduct) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
@@ -44,21 +29,37 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         }, 500);
     };
 
-    const discount = (product.discountedPrice && product.price > 0)
-        ? Math.round(((product.price - product.discountedPrice) / product.price) * 100)
+    // Get price info directly from Medusa product
+    const priceData = getProductPrice({ product });
+    const cheapestPrice = priceData.cheapestPrice;
+
+    const price = cheapestPrice?.calculated_price_number ? cheapestPrice.calculated_price_number / 100 : 0;
+    const originalPrice = cheapestPrice?.original_price_number ? cheapestPrice.original_price_number / 100 : undefined;
+    const hasDiscount = originalPrice && originalPrice > price;
+
+    const discount = hasDiscount && price > 0
+        ? Math.round(((originalPrice - price) / originalPrice) * 100)
         : 0;
 
+
     const renderStars = () => {
+        // Default rating since Medusa doesn't provide this
+        const rating = 5;
         return Array(5).fill(0).map((_, i) => {
-            const starClass = i < Math.floor(product.rating)
+            const starClass = i < Math.floor(rating)
                 ? "fill-yellow-400 text-yellow-400"
                 : "text-gray-300";
             return <Star key={i} size={14} className={starClass} />;
         });
     };
 
-    const hasPricing = product.price > 0;
-    const showDiscounted = product.discountedPrice && product.discountedPrice < product.price;
+    const hasPricing = price > 0;
+    const imageUrl = product.images?.[0]?.url || "/api/placeholder/400/400";
+
+    // Inventory check
+    const inStock = product.variants?.some(variant =>
+        variant.inventory_quantity === undefined || variant.inventory_quantity > 0
+    ) ?? true;
 
     return (
         <Card
@@ -67,17 +68,17 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             onMouseLeave={() => setIsHovering(false)}
         >
             {/* Discount Banner */}
-            {discount > 0 && (
+            {hasDiscount && discount > 0 && (
                 <div className="absolute top-0 left-0 right-0 bg-red-600 text-white text-center text-xs font-bold py-1 z-10">
                     {discount}% OFF
                 </div>
             )}
 
             {/* Image */}
-            <div className="relative aspect-square overflow-hidden" style={{ marginTop: discount > 0 ? '24px' : '0' }}>
+            <div className="relative aspect-square overflow-hidden" style={{ marginTop: hasDiscount ? '24px' : '0' }}>
                 {/* Product Image */}
                 <img
-                    src={product.imageUrl || "/api/placeholder/400/400"}
+                    src={imageUrl}
                     alt={product.title}
                     className={`w-full h-full object-cover transition-transform duration-300 ${isHovering ? 'scale-105' : 'scale-100'}`}
                 />
@@ -97,7 +98,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                         <div className="grid grid-cols-1 md:grid-cols-2">
                             <div className="aspect-square bg-gray-100">
                                 <img
-                                    src={product.imageUrl || "/api/placeholder/400/400"}
+                                    src={imageUrl}
                                     alt={product.title}
                                     className="w-full h-full object-cover"
                                 />
@@ -110,21 +111,19 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                                 <div className="flex items-center gap-2">
                                     <div className="flex">{renderStars()}</div>
                                     <span className="text-xs text-gray-500">
-                                        ({product.reviewCount} reviews)
+                                        (0 reviews) {/* Medusa doesn't provide review count */}
                                     </span>
                                 </div>
 
                                 {hasPricing ? (
                                     <div className="flex items-center gap-2">
-                                        {showDiscounted ? (
+                                        {hasDiscount ? (
                                             <>
                                                 <span className="text-lg font-bold text-red-600">
-                                                    {product.formattedDiscountedPrice ||
-                                                        `${product.currencyCode} ${product.discountedPrice?.toFixed(2)}`}
+                                                    {cheapestPrice?.calculated_price || `$${price.toFixed(2)}`}
                                                 </span>
                                                 <span className="text-gray-500 text-sm line-through">
-                                                    {product.formattedPrice ||
-                                                        `${product.currencyCode} ${product.price.toFixed(2)}`}
+                                                    {cheapestPrice?.original_price || `$${originalPrice?.toFixed(2)}`}
                                                 </span>
                                                 <Badge className="bg-red-600 hover:bg-red-700">
                                                     {discount}% OFF
@@ -132,8 +131,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                                             </>
                                         ) : (
                                             <span className="text-lg font-bold">
-                                                {product.formattedPrice ||
-                                                    `${product.currencyCode} ${product.price.toFixed(2)}`}
+                                                {cheapestPrice?.calculated_price || `$${price.toFixed(2)}`}
                                             </span>
                                         )}
                                     </div>
@@ -142,14 +140,14 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                                 )}
 
                                 <p className="text-sm text-gray-700 line-clamp-4">
-                                    {product.description}
+                                    {product.description || "No description available"}
                                 </p>
 
                                 <div className="mt-auto flex gap-2">
                                     <Button
                                         className="flex-1"
                                         onClick={handleAddToCart}
-                                        disabled={!product.inStock || isLoading}
+                                        disabled={!inStock || isLoading}
                                     >
                                         {isLoading ? "Adding..." : "Add to Cart"}
                                     </Button>
@@ -172,26 +170,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
                 <div className="flex items-center gap-1">
                     <div className="flex">{renderStars()}</div>
-                    <span className="text-xs text-gray-500">({product.reviewCount})</span>
+                    <span className="text-xs text-gray-500">(0)</span>
                 </div>
 
                 {hasPricing ? (
                     <div className="flex items-center gap-1">
-                        {showDiscounted ? (
+                        {hasDiscount ? (
                             <>
                                 <span className="font-bold text-sm text-red-600">
-                                    {product.formattedDiscountedPrice ||
-                                        `${product.currencyCode} ${product.discountedPrice?.toFixed(2)}`}
+                                    {cheapestPrice?.calculated_price || `$${price.toFixed(2)}`}
                                 </span>
                                 <span className="text-gray-500 text-xs line-through">
-                                    {product.formattedPrice ||
-                                        `${product.currencyCode} ${product.price.toFixed(2)}`}
+                                    {cheapestPrice?.original_price || `$${originalPrice?.toFixed(2)}`}
                                 </span>
                             </>
                         ) : (
                             <span className="font-bold text-sm">
-                                {product.formattedPrice ||
-                                    `${product.currencyCode} ${product.price.toFixed(2)}`}
+                                {cheapestPrice?.calculated_price || `$${price.toFixed(2)}`}
                             </span>
                         )}
                     </div>
@@ -200,8 +195,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 )}
 
                 <div className="mt-1">
-                    <span className={`text-xs font-medium ${product.inStock ? 'text-green-600' : 'text-red-600'}`}>
-                        {product.inStock ? 'In Stock' : 'Out of Stock'}
+                    <span className={`text-xs font-medium ${inStock ? 'text-green-600' : 'text-red-600'}`}>
+                        {inStock ? 'In Stock' : 'Out of Stock'}
                     </span>
                 </div>
             </div>
@@ -212,7 +207,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     size="sm"
                     className="w-full gap-2"
                     onClick={handleAddToCart}
-                    disabled={!product.inStock || isLoading}
+                    disabled={!inStock || isLoading}
                 >
                     <ShoppingCart size={14} />
                     {isLoading ? "Adding..." : "Add to Cart"}

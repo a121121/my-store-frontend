@@ -1,15 +1,16 @@
-// components/Navbar.tsx
+// Modified Navbar.tsx with CartSheet integration
 "use client";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Menu, ShoppingBag, Search, User, X } from "lucide-react";
+import { Menu, Search, User, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useRegion } from "@/providers/region";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import CartSheet from "@/components/CartSheet";
 
 export default function Navbar() {
-    const { region, regions, setRegion } = useRegion()
+    const { region, regions, setRegion } = useRegion();
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -68,9 +69,6 @@ export default function Navbar() {
 
                     {/* Icons - aligned right */}
                     <div className="hidden md:flex items-center space-x-2">
-                        {/* <Button variant="ghost" size="icon">
-                            <Search className="h-5 w-5" />
-                        </Button> */}
                         <Select
                             value={region?.id}
                             onValueChange={(value) => {
@@ -94,12 +92,9 @@ export default function Navbar() {
                         <Button variant="ghost" size="icon">
                             <User className="h-5 w-5" />
                         </Button>
-                        <Button variant="ghost" size="icon" className="relative">
-                            <ShoppingBag className="h-5 w-5" />
-                            <span className="absolute top-0 right-0 h-4 w-4 rounded-full bg-[var(--chart-1)] text-xs flex items-center justify-center text-white">
-                                3
-                            </span>
-                        </Button>
+
+                        {/* Cart Sheet Component */}
+                        <CartSheet />
                     </div>
                 </div>
             </div>
@@ -161,10 +156,11 @@ export default function Navbar() {
                                     <User className="h-4 w-4" />
                                     <span>Account</span>
                                 </Button>
-                                <Button className="snuggle-button flex items-center gap-2">
-                                    <ShoppingBag className="h-4 w-4" />
-                                    <span>Cart (3)</span>
-                                </Button>
+
+                                {/* Mobile Cart Button */}
+                                <div className="flex">
+                                    <CartSheet />
+                                </div>
                             </div>
                         </div>
                     </div>

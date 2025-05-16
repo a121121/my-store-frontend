@@ -1,21 +1,19 @@
-// app/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { DotLoader } from "react-spinners";
 import HeroSection from "@/components/Hero";
 import ProductPage from "@/components/ProductsPage";
 import { useRegion } from "@/providers/region";
 import { HttpTypes } from "@medusajs/types";
 import { listProducts } from "@/lib/products";
-import { adaptMedusaProduct } from "@/lib/product-adapter";
+import { useCart } from "@/providers/cart";
 
 export default function Home() {
+  const { cart, addToCart, refreshCart } = useCart();
   const { region } = useRegion();
   const [products, setProducts] = useState<HttpTypes.StoreProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [cartCount, setCartCount] = useState(0);
   const [wishlistCount, setWishlistCount] = useState(0);
 
   useEffect(() => {
@@ -29,7 +27,7 @@ export default function Home() {
         const productsResponse = await listProducts({
           regionId: region.id,
           queryParams: {
-            fields: "title,description,images.url,images.metadata,handle,variants.calculated_price,variants.inventory_quantity",
+            fields: "id,title,description,handle,images.url,images.metadata,variants.id,variants.title,variants.sku,variants.calculated_price,variants.inventory_quantity",
             limit: 12
           },
         });
@@ -46,23 +44,36 @@ export default function Home() {
     fetchAllProducts();
   }, [region]);
 
-  const handleAddToCart = (product: { title: string }) => {
-    setCartCount(prev => prev + 1);
-    console.log('Adding to cart:', product.title);
+  const handleAddToCart = async (product: HttpTypes.StoreProduct) => {
+    try {
+      if (!product.variants || product.variants.length === 0) {
+        throw new Error("No variants available for this product");
+      }
+
+      const variantId = product.variants[0].id;
+      if (!variantId) {
+        throw new Error("Variant ID is missing");
+      }
+
+      await addToCart(variantId, 1);
+      console.log("Added to cart:", product.title);
+    } catch (error) {
+      console.error("Error adding to cart:", error);
+    }
   };
 
-  const handleAddToWishlist = (product: { title: string }) => {
+  const handleAddToWishlist = (product: HttpTypes.StoreProduct) => {
     setWishlistCount(prev => prev + 1);
-    console.log('Adding to wishlist:', product.title);
+    console.log("Adding to wishlist:", product.title);
   };
 
-  const adaptedProducts = products.map(product => adaptMedusaProduct(product));
+  const cartCount = cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
   return (
     <main className="min-h-screen">
       <HeroSection />
       <ProductPage
-        products={adaptedProducts}
+        products={products} // Pass raw products directly
         isLoading={isLoading}
         error={error}
         cartCount={cartCount}
