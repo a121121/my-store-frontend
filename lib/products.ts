@@ -83,6 +83,40 @@ export const listProducts = async ({
     })
 }
 
+
+// lib/sdk/products.ts
+// lib/sdk/products.ts
+export const retrieveProduct = async ({
+  id,
+  regionId
+}: {
+  id: string;
+  regionId: string; // Required since we always have region context
+}): Promise<HttpTypes.StoreProduct> => {
+  const headers = {
+    ...(await getAuthHeaders()),
+  };
+
+  const next = {
+    ...(await getCacheOptions("products")),
+  };
+
+  return sdk.client
+    .fetch<{ product: HttpTypes.StoreProduct }>(
+      `/store/products/${id}`,
+      {
+        method: "GET",
+        query: {
+          region_id: regionId, // Using the passed regionId
+          fields: "*variants.calculated_price,+variants.inventory_quantity,+metadata,+tags",
+        },
+        headers,
+        next,
+        cache: "force-cache",
+      }
+    )
+    .then(({ product }) => product);
+};
 /**
  * This will fetch 100 products to the Next.js cache and sort them based on the sortBy parameter.
  * It will then return the paginated products based on the page and limit parameters.

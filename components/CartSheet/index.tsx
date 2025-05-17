@@ -27,11 +27,6 @@ export default function CartSheet() {
     const [isOpen, setIsOpen] = useState(false);
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
 
-    const subtotal = cart?.items?.reduce(
-        (total, item) => total + (item.unit_price * item.quantity),
-        0
-    ) || 0;
-
     const handleQuantityUpdate = async (itemId: string, quantity: number) => {
         if (quantity < 1 || !cart) return;
 
@@ -52,6 +47,7 @@ export default function CartSheet() {
         setIsUpdating(itemId);
         try {
             await updateItemQuantity(itemId, 0);
+            // After setting quantity to 0, we need to refresh the cart to remove the item
             await refreshCart();
             toast.success("Item removed from cart");
         } catch (error) {
@@ -78,7 +74,9 @@ export default function CartSheet() {
         }).format(price);
     };
 
-    const itemCount = cart?.items?.length || 0;
+    // Filter out items with quantity 0 before counting or displaying
+    const validItems = cart?.items?.filter(item => item.quantity > 0) || [];
+    const itemCount = validItems.length;
 
     return (
         <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -136,7 +134,7 @@ export default function CartSheet() {
 
                             <ScrollArea className="flex-1 px-4">
                                 <div className="py-2 space-y-3">
-                                    {cart.items?.map((item) => {
+                                    {validItems.map((item) => {
                                         const title = item.title || item.variant?.title || "Product";
                                         const thumbnail = item.thumbnail || "/placeholder.jpg";
                                         const price = (item.unit_price * item.quantity);
@@ -215,11 +213,6 @@ export default function CartSheet() {
 
                             <div className="px-4 py-3 border-t">
                                 <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between">
-                                        <span className="text-muted-foreground">Subtotal</span>
-                                        <span className="font-medium">{formatPrice(subtotal)}</span>
-                                    </div>
-
                                     {cart.shipping_total && (
                                         <div className="flex justify-between">
                                             <span className="text-muted-foreground">Shipping</span>

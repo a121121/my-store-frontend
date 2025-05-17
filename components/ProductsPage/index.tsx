@@ -5,16 +5,16 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Heart, ShoppingCart } from 'lucide-react';
 import ProductGrid from '../ProductGrid';
-import { Product } from '../ProductCard';
+import { HttpTypes } from "@medusajs/types";
 
 interface ProductPageProps {
-    products: Product[];
+    products: HttpTypes.StoreProduct[];
     isLoading: boolean;
     error: string | null;
     cartCount: number;
     wishlistCount: number;
-    onAddToCart: (product: Product) => void;
-    onAddToWishlist: (product: Product) => void;
+    onAddToCart: (product: HttpTypes.StoreProduct) => void;
+    onAddToWishlist: (product: HttpTypes.StoreProduct) => void;
 }
 
 export default function ProductPage({

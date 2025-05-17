@@ -1,13 +1,14 @@
 import React from 'react';
 import { ShoppingCart } from 'lucide-react';
+import { HttpTypes } from "@medusajs/types";
+import Link from "next/link";
 import ProductCard from '../ProductCard';
-import { Product } from '../ProductCard';
 
 interface ProductGridProps {
-    products: Product[];
+    products: HttpTypes.StoreProduct[];
     isLoading?: boolean;
-    onAddToCart?: (product: Product) => void;
-    onAddToWishlist?: (product: Product) => void;
+    onAddToCart?: (product: HttpTypes.StoreProduct) => void;
+    onAddToWishlist?: (product: HttpTypes.StoreProduct) => void;
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({
@@ -44,16 +45,26 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
             {products.map((product) => (
-                <div
+                <Link
                     key={product.id}
-                    className="transition-all duration-300 animate-fadeIn"
+                    href={`/products/${product.id}`}
+                    className="transition-all duration-300 animate-fadeIn hover:shadow-lg rounded-lg"
+                    passHref
                 >
                     <ProductCard
                         product={product}
-                        onAddToCart={onAddToCart}
-                        onAddToWishlist={onAddToWishlist}
+                        onAddToCart={(e) => {
+                            // e.preventDefault();
+                            // e.stopPropagation();
+                            onAddToCart?.(product);
+                        }}
+                        onAddToWishlist={(e) => {
+                            // e.preventDefault();
+                            // e.stopPropagation();
+                            onAddToWishlist?.(product);
+                        }}
                     />
-                </div>
+                </Link>
             ))}
         </div>
     );

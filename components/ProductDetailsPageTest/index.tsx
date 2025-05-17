@@ -1,42 +1,44 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Heart, ShoppingCart, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
-import type { Product, ProductOption, ProductVariant } from './ProductCard'; // Reuse types
+import { HttpTypes } from "@medusajs/types";
+import { getProductPrice } from "@/lib/get-product-price";
 
-interface ProductDetailProps {
-  product: Product;
-  prices?: {
-    [variantId: string]: {
-      price: number;
-      originalPrice?: number;
-    };
-  };
-  inventoryStatus?: {
-    [variantId: string]: number;
-  };
-  onAddToCart?: (product: Product, variantId: string, quantity: number) => void;
-  onAddToWishlist?: (product: Product) => void;
-  relatedProducts?: Product[];
+
+interface ProductDetailPageProps {
+  product: HttpTypes.StoreProduct;
+  onAddToCart?: (product: HttpTypes.StoreProduct, variantId: string, quantity: number) => void;
+  onAddToWishlist?: (product: HttpTypes.StoreProduct) => void;
+  relatedProducts?: HttpTypes.StoreProduct[];
 }
 
-const ProductDetailPage: React.FC<ProductDetailProps> = ({
+const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   product,
-  prices = {},
-  inventoryStatus = {},
   onAddToCart,
   onAddToWishlist,
   relatedProducts = []
 }) => {
-  // Selected options state
-  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(
-    product.options.reduce((acc, option) => {
-      acc[option.id] = option.values[0]?.id || '';
-      return acc;
-    }, {} as Record<string, string>)
+  // State for selected variant
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(
+    // product.variants?.[0]?.id || ''
+    product.variants && product.variants.length > 0 ? product.variants[0]?.id || '' : ''
   );
+
+  // Track selected option values
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>(() => {
+    // Initialize with first option value for each option
+    const initialOptions: Record<string, string> = {};
+    if (product.options) {
+      product.options.forEach(option => {
+        if (option.values && option.values.length > 0) {
+          initialOptions[option.id] = option.values[0].value;
+        }
+      });
+    }
+    return initialOptions;
+  });
 
   // Selected image index for the gallery
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -48,57 +50,93 @@ const ProductDetailPage: React.FC<ProductDetailProps> = ({
   const [isLoading, setIsLoading] = useState(false);
 
   // Find the variant that matches the currently selected options
-  const findMatchingVariant = (): string | null => {
-    for (const variant of product.variants) {
-      const optionMatches = variant.options?.every(optionValue => {
-        const option = product.options.find(o => o.id === optionValue.option_id);
-        return option && selectedOptions[option.id] === optionValue.id;
-      });
+  // const findMatchingVariant = (): HttpTypes.StoreProductVariant | undefined => {
+  //   if (!product.variants) return undefined;
 
-      if (optionMatches) {
-        return variant.id;
-      }
-    }
-    return null;
+  //   return product.variants.find(variant => {
+  //     if (!variant.options) return false;
+
+  //     return variant.options.every(option => {
+  //       return option.option_id && selectedOptions[option.option_id] === option.value;
+  //     });
+  //   });
+  // };
+  const findMatchingVariant = (): HttpTypes.StoreProductVariant | undefined => {
+    if (!product.variants || product.variants.length === 0) return undefined;
+
+    return product.variants.find(variant => {
+      if (!variant.options || variant.options.length === 0) return false;
+
+      return variant.options.every(option => {
+        return option.option_id && selectedOptions[option.option_id] === option.value;
+      });
+    });
   };
 
-  const selectedVariantId = findMatchingVariant() || product.variants[0]?.id;
+  // Get the currently selected variant
+  const selectedVariant = findMatchingVariant() || (product.variants && product.variants.length > 0 ? product.variants[0] : undefined);
 
-  // Get price information for the selected variant
-  const priceInfo = selectedVariantId && prices[selectedVariantId]
-    ? prices[selectedVariantId]
-    : { price: 0 };
+  // Get pricing information
+  const priceData = getProductPrice({ product, variantId: selectedVariantId });
+  const cheapestPrice = priceData.cheapestPrice;
 
-  // Calculate discount percentage if there's an original price
-  const discount = priceInfo.originalPrice
-    ? Math.round(((priceInfo.originalPrice - priceInfo.price) / priceInfo.originalPrice) * 100)
+  const price = cheapestPrice?.calculated_price_number
+    ? cheapestPrice.calculated_price_number / 100
+    : 0;
+
+  const originalPrice = cheapestPrice?.original_price_number
+    ? cheapestPrice.original_price_number / 100
+    : undefined;
+
+  const hasDiscount = originalPrice && originalPrice > price;
+
+  const discount = hasDiscount && price > 0
+    ? Math.round(((originalPrice - price) / originalPrice) * 100)
     : 0;
 
   // Check if product is in stock
-  const inStock = selectedVariantId &&
-    (inventoryStatus[selectedVariantId] === undefined || inventoryStatus[selectedVariantId] > 0);
+  const inStock = selectedVariant
+    ? selectedVariant.inventory_quantity === undefined || selectedVariant.inventory_quantity > 0
+    : false;
 
-  // Specific inventory quantity for the selected variant
-  const inventoryQuantity = selectedVariantId && inventoryStatus[selectedVariantId];
+  // Inventory quantity for the selected variant
+  const inventoryQuantity = selectedVariant?.inventory_quantity;
 
   // Handle option change
-  const handleOptionChange = (optionId: string, valueId: string) => {
-    setSelectedOptions(prev => ({
-      ...prev,
-      [optionId]: valueId
-    }));
+  const handleOptionChange = (optionId: string, value: string) => {
+    const newSelectedOptions = {
+      ...selectedOptions,
+      [optionId]: value
+    };
+
+    setSelectedOptions(newSelectedOptions);
+
+    // Find matching variant based on new option selections
+    const variant = product.variants?.find(variant => {
+      if (!variant.options) return false;
+
+      return variant.options.every(option => {
+        return option.option_id && newSelectedOptions[option.option_id] === option.value;
+      });
+    });
+
+    if (variant) {
+      setSelectedVariantId(variant.id);
+    }
   };
 
   // Image gallery navigation
   const handleNextImage = () => {
-    setCurrentImageIndex(prev =>
-      prev === product.images.length - 1 ? 0 : prev + 1
+    if (!product.images || product.images.length === 0) return;
+    setCurrentImageIndex((prev) =>
+      prev === product.images!.length - 1 ? 0 : prev + 1
     );
   };
 
   const handlePrevImage = () => {
-    setCurrentImageIndex(prev =>
-      prev === 0 ? product.images.length - 1 : prev - 1
+    if (!product.images || product.images.length === 0) return;
+    setCurrentImageIndex((prev) =>
+      prev === 0 ? product.images!.length - 1 : prev - 1
     );
   };
 
@@ -107,7 +145,7 @@ const ProductDetailPage: React.FC<ProductDetailProps> = ({
     if (!selectedVariantId) return;
 
     setIsLoading(true);
-    // Simulate API call
+    // Simulate API call or actually call your cart function
     setTimeout(() => {
       if (onAddToCart) onAddToCart(product, selectedVariantId, quantity);
       setIsLoading(false);
@@ -115,20 +153,20 @@ const ProductDetailPage: React.FC<ProductDetailProps> = ({
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 mt-24">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Product Images */}
         <div className="space-y-4">
           {/* Main Image */}
           <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
             <img
-              src={product.images[currentImageIndex]?.url || product.thumbnail || "/api/placeholder/600/600"}
+              src={product.images?.[currentImageIndex]?.url || product.thumbnail || "/api/placeholder/600/600"}
               alt={product.title}
               className="w-full h-full object-cover"
             />
 
             {/* Image Navigation */}
-            {product.images.length > 1 && (
+            {product.images && product.images.length > 1 && (
               <>
                 <Button
                   variant="secondary"
@@ -150,7 +188,7 @@ const ProductDetailPage: React.FC<ProductDetailProps> = ({
             )}
 
             {/* Sale Badge */}
-            {discount > 0 && (
+            {hasDiscount && discount > 0 && (
               <Badge className="absolute top-2 left-2 z-10 bg-red-500 hover:bg-red-600">
                 -{discount}%
               </Badge>
@@ -158,7 +196,7 @@ const ProductDetailPage: React.FC<ProductDetailProps> = ({
           </div>
 
           {/* Thumbnail Gallery */}
-          {product.images.length > 1 && (
+          {product.images && product.images.length > 1 && (
             <div className="grid grid-cols-5 gap-2">
               {product.images.map((image, index) => (
                 <div
@@ -192,16 +230,16 @@ const ProductDetailPage: React.FC<ProductDetailProps> = ({
 
           {/* Price */}
           <div className="flex items-center gap-4">
-            {priceInfo.originalPrice ? (
+            {hasDiscount ? (
               <>
-                <span className="text-3xl font-bold">${priceInfo.price.toFixed(2)}</span>
-                <span className="text-xl text-gray-500 line-through">${priceInfo.originalPrice.toFixed(2)}</span>
+                <span className="text-3xl font-bold">${price.toFixed(2)}</span>
+                <span className="text-xl text-gray-500 line-through">${originalPrice?.toFixed(2)}</span>
                 {discount > 0 && (
                   <Badge className="bg-red-500 hover:bg-red-600">-{discount}% OFF</Badge>
                 )}
               </>
             ) : (
-              <span className="text-3xl font-bold">${priceInfo.price.toFixed(2)}</span>
+              <span className="text-3xl font-bold">${price.toFixed(2)}</span>
             )}
           </div>
 
@@ -224,16 +262,16 @@ const ProductDetailPage: React.FC<ProductDetailProps> = ({
 
           {/* Product Options */}
           <div className="space-y-4">
-            {product.options.map(option => (
+            {product.options?.map(option => (
               <div key={option.id}>
                 <h3 className="text-sm font-medium mb-2">{option.title}</h3>
                 <div className="flex flex-wrap gap-2">
-                  {option.values.map(value => (
+                  {option.values?.map(value => (
                     <Button
                       key={value.id}
-                      variant={selectedOptions[option.id] === value.id ? "default" : "outline"}
+                      variant={selectedOptions[option.id] === value.value ? "default" : "outline"}
                       size="sm"
-                      onClick={() => handleOptionChange(option.id, value.id)}
+                      onClick={() => handleOptionChange(option.id, value.value)}
                     >
                       {value.value}
                     </Button>
@@ -308,13 +346,17 @@ const ProductDetailPage: React.FC<ProductDetailProps> = ({
             <TabsContent value="details" className="p-4">
               <div className="grid grid-cols-2 gap-2">
                 <div className="text-sm font-medium">SKU</div>
-                <div className="text-sm">{product.variants[0]?.sku || 'N/A'}</div>
+                <div className="text-sm">{selectedVariant?.sku || 'N/A'}</div>
 
                 <div className="text-sm font-medium">Weight</div>
                 <div className="text-sm">{product.weight ? `${product.weight}g` : 'N/A'}</div>
 
-                <div className="text-sm font-medium">Material</div>
-                <div className="text-sm">{product.material || 'N/A'}</div>
+                <div className="text-sm font-medium">Dimensions</div>
+                <div className="text-sm">
+                  {product.length && product.width && product.height
+                    ? `${product.length}×${product.width}×${product.height} cm`
+                    : 'N/A'}
+                </div>
 
                 <div className="text-sm font-medium">Origin</div>
                 <div className="text-sm">{product.origin_country || 'N/A'}</div>
@@ -333,6 +375,7 @@ const ProductDetailPage: React.FC<ProductDetailProps> = ({
           <h2 className="text-2xl font-bold mb-6">You may also like</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {/* Here you would map through related products and render ProductCard components */}
+            {/* This would be implemented in the page component */}
           </div>
         </div>
       )}

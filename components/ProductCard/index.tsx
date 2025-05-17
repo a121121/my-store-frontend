@@ -3,7 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { Heart, ShoppingCart, Star, Eye } from 'lucide-react';
+import { Heart, ShoppingCart, Star, Eye, ArrowRight } from 'lucide-react';
 import { HttpTypes } from "@medusajs/types";
 import { getProductPrice } from "@/lib/get-product-price";
 
@@ -11,12 +11,14 @@ interface ProductCardProps {
     product: HttpTypes.StoreProduct;
     onAddToCart?: (product: HttpTypes.StoreProduct) => void;
     onAddToWishlist?: (product: HttpTypes.StoreProduct) => void;
+    onViewProductDetails?: (product: HttpTypes.StoreProduct) => void;
 }
 
 export const ProductCard: React.FC<ProductCardProps> = ({
     product,
     onAddToCart,
-    onAddToWishlist
+    onAddToWishlist,
+    onViewProductDetails
 }) => {
     const [isHovering, setIsHovering] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +29,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             if (onAddToCart) onAddToCart(product);
             setIsLoading(false);
         }, 500);
+    };
+
+    const handleViewProductDetails = () => {
+        // Simulate navigation to product details page
+        console.log("Navigating to product details page for:", product.title, "Product ID:", product.id);
+        if (onViewProductDetails) onViewProductDetails(product);
     };
 
     // Get price info directly from Medusa product
@@ -41,6 +49,8 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         ? Math.round(((originalPrice - price) / originalPrice) * 100)
         : 0;
 
+    // Check if product has multiple variants
+    const hasMultipleVariants = product.variants && product.variants.length > 1;
 
     const renderStars = () => {
         // Default rating since Medusa doesn't provide this
@@ -144,13 +154,23 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                                 </p>
 
                                 <div className="mt-auto flex gap-2">
-                                    <Button
-                                        className="flex-1"
-                                        onClick={handleAddToCart}
-                                        disabled={!inStock || isLoading}
-                                    >
-                                        {isLoading ? "Adding..." : "Add to Cart"}
-                                    </Button>
+                                    {hasMultipleVariants ? (
+                                        <Button
+                                            className="flex-1"
+                                            onClick={handleViewProductDetails}
+                                            disabled={!inStock}
+                                        >
+                                            View Options
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            className="flex-1"
+                                            onClick={handleAddToCart}
+                                            disabled={!inStock || isLoading}
+                                        >
+                                            {isLoading ? "Adding..." : "Add to Cart"}
+                                        </Button>
+                                    )}
                                     <Button
                                         variant="outline"
                                         onClick={() => onAddToWishlist?.(product)}
@@ -201,17 +221,29 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
             </div>
 
-            {/* Add to Cart Button */}
+            {/* Add to Cart Button or View Options Button */}
             <div className="p-3 pt-0">
-                <Button
-                    size="sm"
-                    className="w-full gap-2"
-                    onClick={handleAddToCart}
-                    disabled={!inStock || isLoading}
-                >
-                    <ShoppingCart size={14} />
-                    {isLoading ? "Adding..." : "Add to Cart"}
-                </Button>
+                {hasMultipleVariants ? (
+                    <Button
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={handleViewProductDetails}
+                        disabled={!inStock}
+                        variant="outline"
+                    >
+                        View Options <ArrowRight size={14} />
+                    </Button>
+                ) : (
+                    <Button
+                        size="sm"
+                        className="w-full gap-2"
+                        onClick={handleAddToCart}
+                        disabled={!inStock || isLoading}
+                    >
+                        <ShoppingCart size={14} />
+                        {isLoading ? "Adding..." : "Add to Cart"}
+                    </Button>
+                )}
             </div>
         </Card>
     );
