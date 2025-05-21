@@ -7,7 +7,7 @@ interface ErrorMessageProps {
 
 export function ErrorMessage({ title, message, retry }: ErrorMessageProps) {
     return (
-        <div className="mx-auto max-w-md p-4 text-center">
+        <div className="mx-auto max-w-md p-4 text-center mt-24">
             <h3 className="text-lg font-medium text-red-600">{title}</h3>
             <p className="mt-2 text-gray-600">{message}</p>
             {retry && (

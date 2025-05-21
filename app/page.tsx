@@ -9,7 +9,7 @@ import { listProducts } from "@/lib/products";
 import { useCart } from "@/providers/cart";
 
 export default function Home() {
-  const { cart, addToCart, refreshCart } = useCart();
+  const { cart, addToCart } = useCart();
   const { region } = useRegion();
   const [products, setProducts] = useState<HttpTypes.StoreProduct[]>([]);
   const [isLoading, setIsLoading] = useState(true);

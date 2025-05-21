@@ -79,14 +79,14 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Get pricing information
   const priceData = getProductPrice({ product, variantId: selectedVariantId });
   const cheapestPrice = priceData.cheapestPrice;
-
-  const price = cheapestPrice?.calculated_price_number
-    ? cheapestPrice.calculated_price_number / 100
+  const variantPrice = priceData.variantPrice;
+  const price = variantPrice?.calculated_price_number
+    ? variantPrice.calculated_price_number
     : 0;
-
-  const originalPrice = cheapestPrice?.original_price_number
-    ? cheapestPrice.original_price_number / 100
+  const originalPrice = variantPrice?.original_price_number
+    ? variantPrice.original_price_number
     : undefined;
+
 
   const hasDiscount = originalPrice && originalPrice > price;
 
@@ -153,7 +153,7 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 mt-24">
+    <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Product Images */}
         <div className="space-y-4">
@@ -232,14 +232,14 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           <div className="flex items-center gap-4">
             {hasDiscount ? (
               <>
-                <span className="text-3xl font-bold">${price.toFixed(2)}</span>
-                <span className="text-xl text-gray-500 line-through">${originalPrice?.toFixed(2)}</span>
+                <span className="text-3xl font-bold">{variantPrice?.calculated_price || `${cheapestPrice?.calculated_price_number.toFixed(2)}`}</span>
+                <span className="text-xl text-gray-500 line-through">{variantPrice?.original_price || `${cheapestPrice?.original_price_number.toFixed(2)}`}</span>
                 {discount > 0 && (
                   <Badge className="bg-red-500 hover:bg-red-600">-{discount}% OFF</Badge>
                 )}
               </>
             ) : (
-              <span className="text-3xl font-bold">${price.toFixed(2)}</span>
+              <span className="text-3xl font-bold">${variantPrice?.original_price}</span>
             )}
           </div>
 

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Heart, ShoppingCart, Star, Eye, ArrowRight } from 'lucide-react';
 import { HttpTypes } from "@medusajs/types";
@@ -32,28 +31,28 @@ export const ProductCard: React.FC<ProductCardProps> = ({
     };
 
     const handleViewProductDetails = () => {
-        // Simulate navigation to product details page
         console.log("Navigating to product details page for:", product.title, "Product ID:", product.id);
         if (onViewProductDetails) onViewProductDetails(product);
     };
 
-    // Get price info directly from Medusa product
+    // Get price info
     const priceData = getProductPrice({ product });
     const cheapestPrice = priceData.cheapestPrice;
-
     const price = cheapestPrice?.calculated_price_number ? cheapestPrice.calculated_price_number / 100 : 0;
     const originalPrice = cheapestPrice?.original_price_number ? cheapestPrice.original_price_number / 100 : undefined;
     const hasDiscount = originalPrice && originalPrice > price;
-
     const discount = hasDiscount && price > 0
         ? Math.round(((originalPrice - price) / originalPrice) * 100)
         : 0;
 
-    // Check if product has multiple variants
     const hasMultipleVariants = product.variants && product.variants.length > 1;
+    const hasPricing = price > 0;
+    const imageUrl = product.images?.[0]?.url || "/api/placeholder/400/400";
+    const inStock = product.variants?.some(variant =>
+        variant.inventory_quantity === undefined || variant.inventory_quantity > 0
+    ) ?? true;
 
     const renderStars = () => {
-        // Default rating since Medusa doesn't provide this
         const rating = 5;
         return Array(5).fill(0).map((_, i) => {
             const starClass = i < Math.floor(rating)
@@ -63,34 +62,33 @@ export const ProductCard: React.FC<ProductCardProps> = ({
         });
     };
 
-    const hasPricing = price > 0;
-    const imageUrl = product.images?.[0]?.url || "/api/placeholder/400/400";
-
-    // Inventory check
-    const inStock = product.variants?.some(variant =>
-        variant.inventory_quantity === undefined || variant.inventory_quantity > 0
-    ) ?? true;
-
     return (
-        <Card
-            className="h-full overflow-hidden transition-shadow duration-300 hover:shadow-md flex flex-col relative"
+        <div
+            className="group relative flex flex-col h-full rounded-lg overflow-hidden transition-all duration-300 hover:shadow-lg bg-white"
             onMouseEnter={() => setIsHovering(true)}
             onMouseLeave={() => setIsHovering(false)}
         >
             {/* Discount Banner */}
             {hasDiscount && discount > 0 && (
-                <div className="absolute top-0 left-0 right-0 bg-red-600 text-white text-center text-xs font-bold py-1 z-10">
+                <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full z-10">
                     {discount}% OFF
                 </div>
             )}
 
-            {/* Image */}
-            <div className="relative aspect-square overflow-hidden" style={{ marginTop: hasDiscount ? '24px' : '0' }}>
-                {/* Product Image */}
+            {/* Wishlist Button */}
+            <button
+                onClick={() => onAddToWishlist?.(product)}
+                className="absolute top-2 right-2 z-10 p-2 bg-white/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+            >
+                <Heart size={18} className="text-gray-700 hover:fill-red-500 hover:text-red-500" />
+            </button>
+
+            {/* Image Container */}
+            <div className="relative aspect-square overflow-hidden">
                 <img
                     src={imageUrl}
                     alt={product.title}
-                    className={`w-full h-full object-cover transition-transform duration-300 ${isHovering ? 'scale-105' : 'scale-100'}`}
+                    className={`w-full h-full object-cover transition-all duration-500 ${isHovering ? 'scale-110' : 'scale-100'}`}
                 />
 
                 {/* Quick View Button */}
@@ -99,12 +97,12 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                         <Button
                             size="sm"
                             variant="secondary"
-                            className={`absolute bottom-2 right-2 rounded-full transition-opacity ${isHovering ? 'opacity-100' : 'opacity-0'}`}
+                            className={`absolute bottom-2 right-2 rounded-full bg-white/90 backdrop-blur-sm hover:bg-white transition-all duration-300 ${isHovering ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2'}`}
                         >
                             <Eye size={16} />
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="max-w-2xl p-0 overflow-hidden">
+                    <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-lg">
                         <div className="grid grid-cols-1 md:grid-cols-2">
                             <div className="aspect-square bg-gray-100">
                                 <img
@@ -121,7 +119,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                                 <div className="flex items-center gap-2">
                                     <div className="flex">{renderStars()}</div>
                                     <span className="text-xs text-gray-500">
-                                        (0 reviews) {/* Medusa doesn't provide review count */}
+                                        (0 reviews)
                                     </span>
                                 </div>
 
@@ -185,8 +183,10 @@ export const ProductCard: React.FC<ProductCardProps> = ({
             </div>
 
             {/* Product Info */}
-            <div className="p-3 flex flex-col gap-1 flex-grow">
-                <h3 className="font-medium text-sm line-clamp-2">{product.title}</h3>
+            <div className="p-4 flex flex-col gap-2 flex-grow">
+                <h3 className="font-medium text-sm line-clamp-2 hover:text-primary transition-colors">
+                    {product.title}
+                </h3>
 
                 <div className="flex items-center gap-1">
                     <div className="flex">{renderStars()}</div>
@@ -194,49 +194,49 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                 </div>
 
                 {hasPricing ? (
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-2 mt-1">
                         {hasDiscount ? (
                             <>
-                                <span className="font-bold text-sm text-red-600">
+                                <span className="font-bold text-base text-red-600">
                                     {cheapestPrice?.calculated_price || `$${price.toFixed(2)}`}
                                 </span>
-                                <span className="text-gray-500 text-xs line-through">
+                                <span className="text-gray-500 text-sm line-through">
                                     {cheapestPrice?.original_price || `$${originalPrice?.toFixed(2)}`}
                                 </span>
                             </>
                         ) : (
-                            <span className="font-bold text-sm">
+                            <span className="font-bold text-base">
                                 {cheapestPrice?.calculated_price || `$${price.toFixed(2)}`}
                             </span>
                         )}
                     </div>
                 ) : (
-                    <span className="text-xs text-gray-600">Contact for price</span>
+                    <span className="text-sm text-gray-600 mt-1">Contact for price</span>
                 )}
 
-                <div className="mt-1">
-                    <span className={`text-xs font-medium ${inStock ? 'text-green-600' : 'text-red-600'}`}>
+                <div className="mt-2">
+                    <span className={`text-xs font-medium px-2 py-1 rounded-full ${inStock ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                         {inStock ? 'In Stock' : 'Out of Stock'}
                     </span>
                 </div>
             </div>
 
-            {/* Add to Cart Button or View Options Button */}
-            <div className="p-3 pt-0">
+            {/* Action Buttons */}
+            <div className="px-4 pb-4">
                 {hasMultipleVariants ? (
                     <Button
                         size="sm"
-                        className="w-full gap-2"
+                        className="w-full gap-2 hover:bg-primary/90 transition-colors"
                         onClick={handleViewProductDetails}
                         disabled={!inStock}
-                        variant="outline"
+                        variant="default"
                     >
                         View Options <ArrowRight size={14} />
                     </Button>
                 ) : (
                     <Button
                         size="sm"
-                        className="w-full gap-2"
+                        className="w-full gap-2 hover:bg-primary/90 transition-colors"
                         onClick={handleAddToCart}
                         disabled={!inStock || isLoading}
                     >
@@ -245,7 +245,7 @@ export const ProductCard: React.FC<ProductCardProps> = ({
                     </Button>
                 )}
             </div>
-        </Card>
+        </div>
     );
 };
 
