@@ -16,6 +16,10 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [wishlistCount, setWishlistCount] = useState(0);
 
+
+  // currently we are calling the products dynamically so we can have no cahe and that will actually work better however if 
+  // the products are fetched on server side, SEO will improve and so will the loading speed
+  // however; that requires separation of logic for client and server side
   useEffect(() => {
     async function fetchAllProducts() {
       if (!region) return;
@@ -33,6 +37,7 @@ export default function Home() {
         });
 
         setProducts(productsResponse.response.products);
+        console.log("Fetched products:", productsResponse.response.products);
       } catch (error) {
         console.error("Error fetching products:", error);
         setError("Failed to load products");

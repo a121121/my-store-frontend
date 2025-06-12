@@ -5,21 +5,23 @@ import { Badge } from '@/components/ui/badge';
 import { Heart, ShoppingCart, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { HttpTypes } from "@medusajs/types";
 import { getProductPrice } from "@/lib/get-product-price";
-
+import { useCart } from '@/providers/cart';
 
 interface ProductDetailPageProps {
   product: HttpTypes.StoreProduct;
-  onAddToCart?: (product: HttpTypes.StoreProduct, variantId: string, quantity: number) => void;
+  // onAddToCart?: (product: HttpTypes.StoreProduct, variantId: string, quantity: number) => void;
   onAddToWishlist?: (product: HttpTypes.StoreProduct) => void;
   relatedProducts?: HttpTypes.StoreProduct[];
 }
 
 const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   product,
-  onAddToCart,
+  // onAddToCart,
   onAddToWishlist,
   relatedProducts = []
 }) => {
+
+  const { addToCart } = useCart();
   // State for selected variant
   const [selectedVariantId, setSelectedVariantId] = useState<string>(
     // product.variants?.[0]?.id || ''
@@ -141,16 +143,21 @@ const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   };
 
   // Add to cart handler
-  const handleAddToCart = () => {
+  const handleAddToCart = async () => {
     if (!selectedVariantId) return;
 
     setIsLoading(true);
-    // Simulate API call or actually call your cart function
-    setTimeout(() => {
-      if (onAddToCart) onAddToCart(product, selectedVariantId, quantity);
+    try {
+      await addToCart(selectedVariantId, quantity);
+      console.log("Added to cart");
+    } catch (error) {
+      console.error("Failed to add to cart:", error);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
+
+
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -32,58 +32,85 @@ export const Shipping = ({
     const [calculatedPrices, setCalculatedPrices] = useState<
         Record<string, number>
     >({})
+    const [optionsFetched, setOptionsFetched] = useState(false)
     const router = useRouter()
 
+    // Fetch shipping options only once when cart is available
     useEffect(() => {
-        if (shippingOptions.length || !cart) {
+        if (!cart || optionsFetched) {
             return
         }
+
+        console.log("Fetching shipping options for cart:", cart.id)
 
         sdk.store.fulfillment.listCartOptions({
             cart_id: cart.id || "",
         })
             .then(({ shipping_options }) => {
+                console.log("Received shipping options:", shipping_options)
                 setShippingOptions(shipping_options)
+                setOptionsFetched(true)
                 setLoading(false)
             })
-    }, [shippingOptions, cart])
+            .catch((error) => {
+                console.error("Error fetching shipping options:", error)
+                setLoading(false)
+            })
+    }, [cart?.id, optionsFetched]) // Only depend on cart.id and optionsFetched flag
 
+    // Calculate prices for dynamic pricing options
     useEffect(() => {
-        if (!cart || !shippingOptions.length) {
+        if (!cart || !shippingOptions.length || !optionsFetched) {
             return
         }
 
-        const promises = shippingOptions
-            .filter((shippingOption) => shippingOption.price_type === "calculated")
-            .map((shippingOption) =>
-                sdk.client.fetch(
-                    `/store/shipping-options/${shippingOption.id}/calculate`,
-                    {
-                        method: "POST",
-                        body: {
-                            cart_id: cart.id,
-                            data: {
-                                // pass any custom data useful for price calculation
-                            },
-                        },
-                    }
-                ) as Promise<{ shipping_option: HttpTypes.StoreCartShippingOption }>
-            )
+        const calculatedOptions = shippingOptions.filter(
+            (shippingOption) => shippingOption.price_type === "calculated"
+        )
 
-        if (promises.length) {
-            Promise.allSettled(promises).then((res) => {
-                const pricesMap: Record<string, number> = {}
-                res
-                    .filter((r) => r.status === "fulfilled")
-                    .forEach((p) => (
-                        pricesMap[p.value?.shipping_option.id || ""] =
-                        p.value?.shipping_option.amount
-                    ))
-
-                setCalculatedPrices(pricesMap)
-            })
+        if (calculatedOptions.length === 0) {
+            return
         }
-    }, [shippingOptions, cart])
+
+        console.log("Calculating prices for options:", calculatedOptions)
+
+        const promises = calculatedOptions.map((shippingOption) =>
+            sdk.client.fetch(
+                `/store/shipping-options/${shippingOption.id}/calculate`,
+                {
+                    method: "POST",
+                    body: {
+                        cart_id: cart.id,
+                        data: {
+                            // pass any custom data useful for price calculation
+                        },
+                    },
+                }
+            ) as Promise<{ shipping_option: HttpTypes.StoreCartShippingOption }>
+        )
+
+        Promise.allSettled(promises).then((res) => {
+            const pricesMap: Record<string, number> = {}
+            res
+                .filter((r) => r.status === "fulfilled")
+                .forEach((p) => {
+                    if (p.status === "fulfilled") {
+                        pricesMap[p.value?.shipping_option.id || ""] =
+                            p.value?.shipping_option.amount
+                    }
+                })
+
+            console.log("Calculated prices:", pricesMap)
+            setCalculatedPrices(pricesMap)
+        })
+    }, [cart?.id, shippingOptions, optionsFetched])
+
+    // Update shipping method when cart changes
+    useEffect(() => {
+        if (cart?.shipping_methods?.[0]?.shipping_option_id) {
+            setShippingMethod(cart.shipping_methods[0].shipping_option_id)
+        }
+    }, [cart?.shipping_methods])
 
     const getShippingOptionPrice = useCallback(
         (shippingOption: HttpTypes.StoreCartShippingOption) => {
@@ -116,6 +143,10 @@ export const Shipping = ({
             .then(() => {
                 setLoading(false)
                 router.push(`/checkout?step=payment`)
+            })
+            .catch((error) => {
+                console.error("Error updating cart with shipping method:", error)
+                setLoading(false)
             })
     }
 
@@ -157,6 +188,39 @@ export const Shipping = ({
 
     if (!isActive) {
         return null
+    }
+
+    // Debug information
+    console.log("Shipping component render:", {
+        loading,
+        cartId: cart?.id,
+        shippingOptionsCount: shippingOptions.length,
+        optionsFetched,
+        shippingMethod
+    })
+
+    if (loading) {
+        return (
+            <div className="border p-6 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold mb-4">Shipping Method</h3>
+                <div className="flex justify-center p-8">
+                    <div className="text-sm text-muted-foreground">Loading shipping options...</div>
+                </div>
+            </div>
+        )
+    }
+
+    if (shippingOptions.length === 0) {
+        return (
+            <div className="border p-6 rounded-lg mb-6">
+                <h3 className="text-lg font-semibold mb-4">Shipping Method</h3>
+                <div className="flex justify-center p-8">
+                    <div className="text-sm text-muted-foreground">
+                        No shipping options available for this cart.
+                    </div>
+                </div>
+            </div>
+        )
     }
 
     return (

@@ -18,6 +18,7 @@ import { useCart } from "@/providers/cart";
 import Image from "next/image";
 import { HttpTypes } from "@medusajs/types";
 import { toast } from "sonner";
+import Link from "next/link"; // make sure this is imported
 
 type StoreCartLineItem = HttpTypes.StoreCartLineItem;
 type StoreCart = HttpTypes.StoreCart;
@@ -246,10 +247,15 @@ export default function CartSheet() {
                 {itemCount > 0 && (
                     <SheetFooter className="px-4 py-3 border-t">
                         <div className="w-full space-y-2">
-                            <Button className="w-full" size="sm">
-                                Proceed to Checkout
-                                <ChevronRight className="h-4 w-4 ml-1" />
-                            </Button>
+
+
+                            <Link href="/checkout" onClick={() => setIsOpen(false)}>
+                                <Button className="w-full" size="sm">
+                                    Proceed to Checkout
+                                    <ChevronRight className="h-4 w-4 ml-1" />
+                                </Button>
+                            </Link>
+
                             <div className="flex gap-2">
                                 <Button
                                     variant="outline"

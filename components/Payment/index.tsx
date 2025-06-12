@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from "../ui/radio-group"
 import { Label } from "../ui/label"
 import { Separator } from "../ui/separator"
 import { formatPrice } from "@/lib/price"
+import StripePayment from "./Stripe"
 
 type PaymentProps = {
     handle: string
@@ -69,17 +70,33 @@ export const Payment = ({
         handleSelectProvider()
     }, [selectedPaymentProvider])
 
+    // const paymentUi = useMemo(() => {
+    //     if (!selectedPaymentProvider) {
+    //         return
+    //     }
+
+    //     switch (selectedPaymentProvider) {
+    //         // TODO handle other providers
+    //         default:
+    //             return <></>
+    //     }
+    // }, [selectedPaymentProvider])
     const paymentUi = useMemo(() => {
-        if (!selectedPaymentProvider) {
-            return
+        const activePaymentSession = cart?.payment_collection?.payment_sessions?.[0]
+
+        if (!activePaymentSession) {
+            return null
         }
 
-        switch (selectedPaymentProvider) {
-            // TODO handle other providers
+        switch (true) {
+            case activePaymentSession.provider_id.startsWith("pp_stripe_"):
+                return <StripePayment />
+            // Add more providers as needed
             default:
-                return <></>
+                return null
         }
-    }, [selectedPaymentProvider])
+    }, [cart])
+
 
     const canPlaceOrder = useMemo(() => {
         switch (selectedPaymentProvider) {
