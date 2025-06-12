@@ -6,7 +6,8 @@ import { useEffect, useMemo } from "react"
 import { Product } from "../Product"
 import { Address } from "../Address"
 import { Shipping } from "../Shipping"
-import { Payment } from "../Payment"
+// import { Payment } from "../Payment"
+import Payment from "../Payment"
 
 type ActiveTab = "product" | "address" | "shipping" | "payment"
 
@@ -59,3 +60,4 @@ export const Router = ({
         </>
     )
 }
+

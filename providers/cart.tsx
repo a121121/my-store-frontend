@@ -71,69 +71,81 @@ export const CartProvider = ({ children }: CartProviderProps) => {
             })
     }, [region])
 
-    // And modify the refreshCart function to only create a new cart if one doesn't exist:
-    // const refreshCart = async () => {
-    //     if (!region) {
+
+
+    // const refreshCart = async (): Promise<HttpTypes.StoreCart | undefined> => {
+    //     if (!region || !region.id) {
+    //         console.warn("⚠️ Region not ready:", region);
     //         return;
     //     }
 
     //     const cartId = localStorage.getItem("cart_id");
+
     //     if (cartId) {
     //         try {
     //             const { cart: dataCart } = await sdk.store.cart.retrieve(cartId, {
-    //                 fields: "+items.variant.*,+items.variant.options.*,+items.variant.options.option.*"
+    //                 fields: "+items.variant.*,+items.variant.options.*,+items.variant.options.option.*",
     //             });
+    //             console.log("✅ Retrieved existing cart:", dataCart.id);
     //             setCart(dataCart);
     //             return dataCart;
-    //         } catch (error) {
-    //             // If retrieval fails, continue to create new cart
-    //             console.error("Failed to retrieve cart:", error);
+    //         } catch (err) {
+    //             console.warn("❌ Failed to retrieve cart. Will try to create new one.", err);
     //         }
     //     }
 
-    //     // Create new cart only if one doesn't exist
-    //     const { cart: dataCart } = await sdk.store.cart.create({
-    //         region_id: region.id,
-    //     });
-
-    //     localStorage.setItem("cart_id", dataCart.id);
-    //     setCart(dataCart);
-
-    //     return dataCart;
-    // }
+    //     try {
+    //         console.log("🛒 Attempting to create cart with region:", region.id);
+    //         const { cart: dataCart } = await sdk.store.cart.create({
+    //             region_id: region.id,
+    //         });
+    //         console.log("✅ Cart created:", dataCart.id);
+    //         localStorage.setItem("cart_id", dataCart.id);
+    //         setCart(dataCart);
+    //         return dataCart;
+    //     } catch (err) {
+    //         console.error("❌ Cart creation failed:", err);
+    //         return;
+    //     }
+    // };
 
     const refreshCart = async (): Promise<HttpTypes.StoreCart | undefined> => {
-        if (!region || !region.id) {
+        if (!region?.id) {
             console.warn("⚠️ Region not ready:", region);
             return;
         }
 
         const cartId = localStorage.getItem("cart_id");
 
-        if (cartId) {
-            try {
-                const { cart: dataCart } = await sdk.store.cart.retrieve(cartId, {
+        try {
+            let dataCart;
+
+            if (cartId) {
+                const { cart: retrievedCart } = await sdk.store.cart.retrieve(cartId, {
                     fields: "+items.variant.*,+items.variant.options.*,+items.variant.options.option.*",
                 });
-                console.log("✅ Retrieved existing cart:", dataCart.id);
-                setCart(dataCart);
-                return dataCart;
-            } catch (err) {
-                console.warn("❌ Failed to retrieve cart. Will try to create new one.", err);
-            }
-        }
 
-        try {
-            console.log("🛒 Attempting to create cart with region:", region.id);
-            const { cart: dataCart } = await sdk.store.cart.create({
-                region_id: region.id,
+                console.log("✅ Retrieved existing cart:", retrievedCart.id);
+                dataCart = retrievedCart;
+            } else {
+                console.log("🛒 Creating new cart with region:", region.id);
+                const { cart: newCart } = await sdk.store.cart.create({ region_id: region.id });
+                localStorage.setItem("cart_id", newCart.id);
+                console.log("✅ Cart created:", newCart.id);
+                dataCart = newCart;
+            }
+
+            // 🔥 Always force update — shallow diff may cause update to be ignored
+            setCart((prev) => {
+                if (!prev || prev.id !== dataCart.id || JSON.stringify(prev) !== JSON.stringify(dataCart)) {
+                    return dataCart;
+                }
+                return { ...dataCart }; // force update by spreading
             });
-            console.log("✅ Cart created:", dataCart.id);
-            localStorage.setItem("cart_id", dataCart.id);
-            setCart(dataCart);
+
             return dataCart;
         } catch (err) {
-            console.error("❌ Cart creation failed:", err);
+            console.error("❌ Failed to refresh cart:", err);
             return;
         }
     };
